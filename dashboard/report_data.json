@@ -1,15 +1,15 @@
 {
-  "generated_at": "07.07.2026 03:43 (İstanbul)",
+  "generated_at": "07.07.2026 09:38 (İstanbul)",
   "date": "2026-07-07",
-  "score": 88,
-  "bots_alive": 28,
+  "score": 78,
+  "bots_alive": 25,
   "reactions": {
-    "total_ok": 66,
-    "total_fail": 12,
-    "success_rate": 85,
-    "vs_yesterday": -62,
-    "speed_per_hour": 15.6,
-    "active_hours": 5,
+    "total_ok": 47,
+    "total_fail": 10,
+    "success_rate": 82,
+    "vs_yesterday": -81,
+    "speed_per_hour": 14.2,
+    "active_hours": 4,
     "peak_hour": 19,
     "peak_count": 22,
     "by_hour": {
@@ -23,11 +23,6 @@
         "fail": 1,
         "total": 10
       },
-      "7": {
-        "ok": 19,
-        "fail": 2,
-        "total": 21
-      },
       "18": {
         "ok": 8,
         "fail": 6,
@@ -40,10 +35,6 @@
       }
     },
     "by_channel": {
-      "Ücretsiz 1": {
-        "ok": 58,
-        "fail": 6
-      },
       "Ücretsiz 2": {
         "ok": 4,
         "fail": 3
@@ -51,6 +42,10 @@
       "Arşiv": {
         "ok": 4,
         "fail": 3
+      },
+      "Ücretsiz 1": {
+        "ok": 39,
+        "fail": 4
       }
     }
   },
@@ -91,17 +86,17 @@
   "bots": [
     {
       "name": "Zelisahin_bot",
-      "alive": true,
+      "alive": false,
       "suspended": false
     },
     {
       "name": "Zelusumun_bot",
-      "alive": true,
+      "alive": false,
       "suspended": false
     },
     {
       "name": "Zebitak_bot",
-      "alive": true,
+      "alive": false,
       "suspended": false
     },
     {

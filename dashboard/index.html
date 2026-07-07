@@ -322,7 +322,14 @@ async function loadData() {
 // ─── KPI ────────────────────────────────────────────────────────
 function setKPI(id, value, delta, deltaClass) {
   const el = document.getElementById(id);
-  if (el) { el.textContent = value; animateCount(el, value); }
+  if (el) {
+    el.textContent = value;
+    // Animasyonu sadece saf sayılara uygula
+    const str = String(value);
+    if (!str.includes('/') && !str.includes('%') && /^\d+$/.test(str.trim()) && parseInt(str) > 0) {
+      animateCount(el, value);
+    }
+  }
   const d = document.getElementById(id + '-delta');
   if (d && delta !== undefined) {
     d.textContent = delta;
@@ -331,14 +338,20 @@ function setKPI(id, value, delta, deltaClass) {
 }
 
 function animateCount(el, target) {
-  const num = parseInt(String(target).replace(/[^0-9]/g,''));
+  // Sadece saf sayı değerleri için animasyon — karışık string'lere dokunma
+  const str = String(target);
+  const num = parseInt(str.replace(/[^0-9]/g,''));
   if (isNaN(num) || num === 0) return;
-  let start = 0, dur = 800, t0 = null;
-  const suffix = String(target).replace(/[0-9]/g,'');
+  // %85 gibi prefix/suffix içerenleri koru
+  const prefix = str.match(/^[^0-9]*/)[0];
+  const suffix = str.match(/[^0-9]*$/)[0];
+  // "28/28" gibi slash içerenleri dokunmadan bırak
+  if (str.includes('/') && str.split('/').length === 2) return;
+  let dur = 800, t0 = null;
   function step(ts) {
     if (!t0) t0 = ts;
     const p = Math.min((ts - t0) / dur, 1);
-    el.textContent = Math.round(p * num) + suffix;
+    el.textContent = prefix + Math.round(p * num) + suffix;
     if (p < 1) requestAnimationFrame(step);
   }
   requestAnimationFrame(step);
