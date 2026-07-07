@@ -1,8 +1,8 @@
 {
-  "generated_at": "07.07.2026 09:38 (İstanbul)",
+  "generated_at": "07.07.2026 09:39 (İstanbul)",
   "date": "2026-07-07",
-  "score": 78,
-  "bots_alive": 25,
+  "score": 90,
+  "bots_alive": 28,
   "reactions": {
     "total_ok": 47,
     "total_fail": 10,
@@ -86,17 +86,17 @@
   "bots": [
     {
       "name": "Zelisahin_bot",
-      "alive": false,
+      "alive": true,
       "suspended": false
     },
     {
       "name": "Zelusumun_bot",
-      "alive": false,
+      "alive": true,
       "suspended": false
     },
     {
       "name": "Zebitak_bot",
-      "alive": false,
+      "alive": true,
       "suspended": false
     },
     {
