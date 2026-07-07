@@ -1,0 +1,234 @@
+{
+  "generated_at": "07.07.2026 03:43 (İstanbul)",
+  "date": "2026-07-07",
+  "score": 88,
+  "bots_alive": 28,
+  "reactions": {
+    "total_ok": 66,
+    "total_fail": 12,
+    "success_rate": 85,
+    "vs_yesterday": -62,
+    "speed_per_hour": 15.6,
+    "active_hours": 5,
+    "peak_hour": 19,
+    "peak_count": 22,
+    "by_hour": {
+      "0": {
+        "ok": 10,
+        "fail": 1,
+        "total": 11
+      },
+      "1": {
+        "ok": 9,
+        "fail": 1,
+        "total": 10
+      },
+      "7": {
+        "ok": 19,
+        "fail": 2,
+        "total": 21
+      },
+      "18": {
+        "ok": 8,
+        "fail": 6,
+        "total": 14
+      },
+      "19": {
+        "ok": 20,
+        "fail": 2,
+        "total": 22
+      }
+    },
+    "by_channel": {
+      "Ücretsiz 1": {
+        "ok": 58,
+        "fail": 6
+      },
+      "Ücretsiz 2": {
+        "ok": 4,
+        "fail": 3
+      },
+      "Arşiv": {
+        "ok": 4,
+        "fail": 3
+      }
+    }
+  },
+  "posts": {
+    "today": 0,
+    "total_stars": 0,
+    "last7": [
+      {
+        "date": "2026-07-01",
+        "count": 0
+      },
+      {
+        "date": "2026-07-02",
+        "count": 0
+      },
+      {
+        "date": "2026-07-03",
+        "count": 0
+      },
+      {
+        "date": "2026-07-04",
+        "count": 0
+      },
+      {
+        "date": "2026-07-05",
+        "count": 0
+      },
+      {
+        "date": "2026-07-06",
+        "count": 0
+      },
+      {
+        "date": "2026-07-07",
+        "count": 0
+      }
+    ]
+  },
+  "bots": [
+    {
+      "name": "Zelisahin_bot",
+      "alive": true,
+      "suspended": false
+    },
+    {
+      "name": "Zelusumun_bot",
+      "alive": true,
+      "suspended": false
+    },
+    {
+      "name": "Zebitak_bot",
+      "alive": true,
+      "suspended": false
+    },
+    {
+      "name": "Qubeaninin_bot",
+      "alive": true,
+      "suspended": false
+    },
+    {
+      "name": "esra_bal_kuzusu_bot",
+      "alive": true,
+      "suspended": false
+    },
+    {
+      "name": "Zebillah_bot",
+      "alive": true,
+      "suspended": false
+    },
+    {
+      "name": "Zeriku_bot",
+      "alive": true,
+      "suspended": false
+    },
+    {
+      "name": "Vip_iesrabot",
+      "alive": true,
+      "suspended": false
+    },
+    {
+      "name": "ie_srabot",
+      "alive": true,
+      "suspended": false
+    },
+    {
+      "name": "esra_arsiv_bot",
+      "alive": true,
+      "suspended": false
+    },
+    {
+      "name": "esrabal_paylasim_bot",
+      "alive": true,
+      "suspended": false
+    },
+    {
+      "name": "malatyaesra_odeme_bot",
+      "alive": true,
+      "suspended": false
+    },
+    {
+      "name": "iesra_bal_bot",
+      "alive": true,
+      "suspended": false
+    },
+    {
+      "name": "Klanerbotbot",
+      "alive": true,
+      "suspended": false
+    },
+    {
+      "name": "reaksiyoninsbot",
+      "alive": true,
+      "suspended": false
+    },
+    {
+      "name": "emlyizbot",
+      "alive": true,
+      "suspended": false
+    },
+    {
+      "name": "Cicisinibot",
+      "alive": true,
+      "suspended": false
+    },
+    {
+      "name": "Esrakiymetlibot",
+      "alive": true,
+      "suspended": false
+    },
+    {
+      "name": "Dudiki_bot",
+      "alive": true,
+      "suspended": false
+    },
+    {
+      "name": "Rurukikiki_bot",
+      "alive": true,
+      "suspended": false
+    },
+    {
+      "name": "Esrarm_bot",
+      "alive": true,
+      "suspended": false
+    },
+    {
+      "name": "Zelahigs_bot",
+      "alive": true,
+      "suspended": false
+    },
+    {
+      "name": "Seyyarimsi_bot",
+      "alive": true,
+      "suspended": false
+    },
+    {
+      "name": "Seyyarimiki_bot",
+      "alive": true,
+      "suspended": false
+    },
+    {
+      "name": "Zazinh_bot",
+      "alive": true,
+      "suspended": false
+    },
+    {
+      "name": "Camicisi_bot",
+      "alive": true,
+      "suspended": false
+    },
+    {
+      "name": "Dodddi_bot",
+      "alive": true,
+      "suspended": false
+    },
+    {
+      "name": "Kurmazlik_bot",
+      "alive": true,
+      "suspended": false
+    }
+  ],
+  "timeline": []
+}
