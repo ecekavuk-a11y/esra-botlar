@@ -1,12 +1,12 @@
 # 📊 Günlük Bot Raporu — 08.07.2026 09:38
 
-> 🟢 **Sistem Skoru: 96/100**
+> 🟢 **Sistem Skoru: 100/100**
 
 ## Bot Durumu
 | Durum | Sayı |
 |-------|------|
-| ✅ Aktif | 27 |
-| ❌ Yanıt Vermiyor | 1 |
+| ✅ Aktif | 28 |
+| ❌ Yanıt Vermiyor | 0 |
 | 🚫 Askıda | 0 |
 | 📦 Toplam | 28 |
 

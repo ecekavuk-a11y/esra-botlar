@@ -1,8 +1,8 @@
 {
   "generated_at": "08.07.2026 09:38 (İstanbul)",
   "date": "2026-07-08",
-  "score": 96,
-  "bots_alive": 27,
+  "score": 100,
+  "bots_alive": 28,
   "reactions": {
     "total_ok": 70,
     "total_fail": 0,
@@ -81,7 +81,7 @@
   "bots": [
     {
       "name": "Zelisahin_bot",
-      "alive": false,
+      "alive": true,
       "suspended": false
     },
     {
