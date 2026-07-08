@@ -1,51 +1,46 @@
 {
-  "generated_at": "07.07.2026 09:39 (İstanbul)",
-  "date": "2026-07-07",
-  "score": 90,
-  "bots_alive": 28,
+  "generated_at": "08.07.2026 09:38 (İstanbul)",
+  "date": "2026-07-08",
+  "score": 96,
+  "bots_alive": 27,
   "reactions": {
-    "total_ok": 47,
-    "total_fail": 10,
-    "success_rate": 82,
-    "vs_yesterday": -81,
-    "speed_per_hour": 14.2,
-    "active_hours": 4,
-    "peak_hour": 19,
-    "peak_count": 22,
+    "total_ok": 70,
+    "total_fail": 0,
+    "success_rate": 100,
+    "vs_yesterday": 23,
+    "speed_per_hour": 23.3,
+    "active_hours": 3,
+    "peak_hour": 22,
+    "peak_count": 32,
     "by_hour": {
-      "0": {
-        "ok": 10,
-        "fail": 1,
-        "total": 11
+      "10": {
+        "ok": 31,
+        "fail": 0,
+        "total": 31
       },
-      "1": {
-        "ok": 9,
-        "fail": 1,
-        "total": 10
+      "22": {
+        "ok": 32,
+        "fail": 0,
+        "total": 32
       },
-      "18": {
-        "ok": 8,
-        "fail": 6,
-        "total": 14
-      },
-      "19": {
-        "ok": 20,
-        "fail": 2,
-        "total": 22
+      "23": {
+        "ok": 7,
+        "fail": 0,
+        "total": 7
       }
     },
     "by_channel": {
+      "Ücretsiz 1": {
+        "ok": 23,
+        "fail": 0
+      },
       "Ücretsiz 2": {
-        "ok": 4,
-        "fail": 3
+        "ok": 23,
+        "fail": 0
       },
       "Arşiv": {
-        "ok": 4,
-        "fail": 3
-      },
-      "Ücretsiz 1": {
-        "ok": 39,
-        "fail": 4
+        "ok": 24,
+        "fail": 0
       }
     }
   },
@@ -53,10 +48,6 @@
     "today": 0,
     "total_stars": 0,
     "last7": [
-      {
-        "date": "2026-07-01",
-        "count": 0
-      },
       {
         "date": "2026-07-02",
         "count": 0
@@ -80,13 +71,17 @@
       {
         "date": "2026-07-07",
         "count": 0
+      },
+      {
+        "date": "2026-07-08",
+        "count": 0
       }
     ]
   },
   "bots": [
     {
       "name": "Zelisahin_bot",
-      "alive": true,
+      "alive": false,
       "suspended": false
     },
     {
