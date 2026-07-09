@@ -120,14 +120,6 @@ async def mesaj_al(update: Update, context: ContextTypes.DEFAULT_TYPE):
             reply_markup=vip_kb(),
             parse_mode=ParseMode.HTML
         )
-        # Admin'e bildir
-        await context.bot.send_message(
-            ADMIN_ID,
-            f"💎 VIP ilgisi!\n"
-            f"Kullanıcı: {update.effective_user.first_name} (@{update.effective_user.username or 'yok'})\n"
-            f"ID: {cid}\n"
-            f"Mesaj: {metin[:100]}"
-        )
         return
 
     # Şov anahtar kelimesi var mı?
@@ -137,14 +129,6 @@ async def mesaj_al(update: Update, context: ContextTypes.DEFAULT_TYPE):
             "Rezervasyon için ödeme yöntemini seç 👇",
             reply_markup=show_kb(),
             parse_mode=ParseMode.HTML
-        )
-        # Admin'e bildir
-        await context.bot.send_message(
-            ADMIN_ID,
-            f"🔥 Şov ilgisi!\n"
-            f"Kullanıcı: {update.effective_user.first_name} (@{update.effective_user.username or 'yok'})\n"
-            f"ID: {cid}\n"
-            f"Mesaj: {metin[:100]}"
         )
         return
 
@@ -199,11 +183,47 @@ async def callback_al(update: Update, context: ContextTypes.DEFAULT_TYPE):
             parse_mode=ParseMode.HTML
         )
 
+async def dekont_al(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    """Fotoğraf veya belge gelirse admin'e ilet — dekont bildirimi"""
+    user = update.effective_user
+    cid  = update.effective_chat.id
+    msg  = update.message
+
+    caption = (
+        f"🧾 <b>Dekont Geldi!</b>\n"
+        f"Kullanıcı: {user.first_name} (@{user.username or 'yok'})\n"
+        f"ID: <code>{cid}</code>"
+    )
+
+    if msg.photo:
+        # En yüksek kaliteli fotoğrafı al
+        file_id = msg.photo[-1].file_id
+        await context.bot.send_photo(
+            chat_id=ADMIN_ID,
+            photo=file_id,
+            caption=caption,
+            parse_mode=ParseMode.HTML
+        )
+    elif msg.document:
+        file_id = msg.document.file_id
+        await context.bot.send_document(
+            chat_id=ADMIN_ID,
+            document=file_id,
+            caption=caption,
+            parse_mode=ParseMode.HTML
+        )
+
+    await msg.reply_text(
+        "✅ Dekontu aldım, kısa sürede kontrol edip aktif ediyorum!"
+    )
+
+
 async def main():
     app = Application.builder().token(BOT_TOKEN).build()
 
     app.add_handler(CommandHandler("start", start))
     app.add_handler(CallbackQueryHandler(callback_al))
+    app.add_handler(MessageHandler(filters.PHOTO | filters.Document.ALL, dekont_al))
     app.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, mesaj_al))
 
     logger.info("✅ Ödeme Botu başladı — polling aktif")
