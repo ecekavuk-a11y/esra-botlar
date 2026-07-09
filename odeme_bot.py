@@ -1,64 +1,221 @@
 import os
 import logging
-import sys
-sys.path.insert(0, '/home/user/workspace')
-from dekont_dogrula import dekont_dogrula
-from telegram import Update
+import re
+from telegram import Update, InlineKeyboardButton, InlineKeyboardMarkup
 from telegram.ext import (
     Application, CommandHandler, MessageHandler,
-    filters, ContextTypes
+    CallbackQueryHandler, filters, ContextTypes
 )
 from telegram.constants import ParseMode
 
-logging.basicConfig(level=logging.WARNING, format='%(asctime)s - %(levelname)s - %(message)s')
+logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
 logger = logging.getLogger(__name__)
 
+# --- AYARLAR ---
 BOT_TOKEN = os.environ.get("ODEME_BOT_TOKEN", "")
-ADMIN_ID  = 5019918710
+ADMIN_ID = 5019918710
+
+# Ödeme bilgileri
+IBAN = "TR49 0082 9000 0949 1261 8500 57"
+IBAN_AD = "İsra Soğukpınar"
+PAPARA = "1261850057"
+
+# Fiyatlar
+VIP_FIYATLAR = """💎 <b>VIP Üyelik Fiyatları</b>
+
+🥉 <b>1 Aylık</b> → <b>1.500₺</b>
+🥈 <b>3 Aylık</b> → <b>3.600₺</b>
+🥇 <b>Ömür Boyu</b> → <b>9.900₺</b>"""
+
+SHOW_FIYATLAR = """🔥 <b>Özel / Sanal Şov Fiyatları</b>
+
+⏱️ <b>5 dakika</b> → <b>500₺</b>
+⏱️ <b>15 dakika</b> → <b>1.500₺</b>
+⏱️ <b>30 dakika</b> → <b>3.000₺</b>
+
+<i>Özel şov tamamen özel, birebir, canlı gerçekleşir.
+Ödeme onaylandıktan sonra hemen başlıyoruz. 🎬</i>"""
+
+ODEME_BILGI = """💳 <b>Ödeme Bilgileri</b>
+
+🏦 <b>IBAN:</b>
+<code>{iban}</code>
+👤 <b>Ad:</b> {ad}
+
+📱 <b>Papara:</b>
+<code>{papara}</code>
+
+<i>Ödeme yaptıktan sonra dekontu buradan ilet, işlemin hemen aktif edilsin. ✅</i>"""
+
+# Anahtar kelimeler
+VIP_KELIMELER = [
+    "vip", "üye", "uye", "üyelik", "uyelik", "abone", "katıl", "katil",
+    "fiyat", "ücret", "ucret", "kaç para", "kac para", "ne kadar",
+    "kanal", "premium", "özel kanal", "ozel kanal"
+]
+
+SHOW_KELIMELER = [
+    "show", "şov", "sov", "sanal", "özel show", "ozel show",
+    "sanal şov", "sanal sov", "görüntülü", "goruntulu",
+    "canlı", "canli", "görüşme", "gorusme", "video call",
+    "özel", "ozel", "birebir", "performans"
+]
+
+def kelime_var_mi(metin: str, kelimeler: list) -> bool:
+    metin_kucuk = metin.lower()
+    for k in kelimeler:
+        if k in metin_kucuk:
+            return True
+    return False
+
+def vip_kb():
+    return InlineKeyboardMarkup([
+        [InlineKeyboardButton("💳 IBAN ile Öde", callback_data="iban_vip")],
+        [InlineKeyboardButton("📱 Papara ile Öde", callback_data="papara_vip")],
+        [InlineKeyboardButton("💬 Detay Sor", url="https://t.me/malatya_esra44")],
+    ])
+
+def show_kb():
+    return InlineKeyboardMarkup([
+        [InlineKeyboardButton("💳 IBAN ile Öde", callback_data="iban_show")],
+        [InlineKeyboardButton("📱 Papara ile Öde", callback_data="papara_show")],
+        [InlineKeyboardButton("💬 Detay Sor", url="https://t.me/malatya_esra44")],
+    ])
+
+def ana_menu_kb():
+    return InlineKeyboardMarkup([
+        [InlineKeyboardButton("💎 VIP Üyelik", callback_data="menu_vip"),
+         InlineKeyboardButton("🔥 Özel Şov", callback_data="menu_show")],
+        [InlineKeyboardButton("💳 Ödeme Bilgileri", callback_data="menu_odeme")],
+    ])
+
+# --- HANDLER'LAR ---
 
 async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    user = update.effective_user
+    hosgeldin = (
+        f"Merhaba {user.first_name}! 👋\n\n"
+        "Ben Malatya Esra'nın asistan botuyum 🍯\n\n"
+        "Ne yapmak istersin?"
+    )
     await update.message.reply_text(
-        "Merhaba 👋\n\nÖdeme dekontu gönderebilirsin.",
+        hosgeldin,
+        reply_markup=ana_menu_kb(),
         parse_mode=ParseMode.HTML
     )
 
+async def mesaj_al(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    """Gelen her mesajı analiz et"""
+    if not update.message or not update.message.text:
+        return
+
+    metin = update.message.text
+    cid = update.effective_chat.id
+
+    # VIP anahtar kelimesi var mı?
+    if kelime_var_mi(metin, VIP_KELIMELER):
+        await update.message.reply_text(
+            VIP_FIYATLAR + "\n\n" +
+            "Hemen üye olmak için ödeme yöntemini seç 👇",
+            reply_markup=vip_kb(),
+            parse_mode=ParseMode.HTML
+        )
+        return
+
+    # Şov anahtar kelimesi var mı?
+    if kelime_var_mi(metin, SHOW_KELIMELER):
+        await update.message.reply_text(
+            SHOW_FIYATLAR + "\n\n" +
+            "Rezervasyon için ödeme yöntemini seç 👇",
+            reply_markup=show_kb(),
+            parse_mode=ParseMode.HTML
+        )
+        return
+
+async def callback_al(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    """Inline buton basımları"""
+    q = update.callback_query
+    await q.answer()
+    data = q.data
+    cid = q.message.chat.id
+
+    odeme_metni = ODEME_BILGI.format(iban=IBAN, ad=IBAN_AD, papara=PAPARA)
+
+    if data == "menu_vip":
+        await q.message.reply_text(
+            VIP_FIYATLAR + "\n\n" + "Ödeme yöntemini seç 👇",
+            reply_markup=vip_kb(),
+            parse_mode=ParseMode.HTML
+        )
+
+    elif data == "menu_show":
+        await q.message.reply_text(
+            SHOW_FIYATLAR + "\n\n" + "Ödeme yöntemini seç 👇",
+            reply_markup=show_kb(),
+            parse_mode=ParseMode.HTML
+        )
+
+    elif data == "menu_odeme":
+        await q.message.reply_text(
+            odeme_metni,
+            parse_mode=ParseMode.HTML
+        )
+
+    elif data in ("iban_vip", "papara_vip"):
+        ekstra = (
+            "\n\n💎 <b>VIP üyelik için ödeme tutarını</b> ve "
+            "\"VIP\" yazısını açıklama kısmına ekle.\n"
+            "Ardından dekontu buraya ilet → işlemin hemen aktif edilsin ✅"
+        )
+        await q.message.reply_text(
+            odeme_metni + ekstra,
+            parse_mode=ParseMode.HTML
+        )
+
+    elif data in ("iban_show", "papara_show"):
+        ekstra = (
+            "\n\n🔥 <b>Şov rezervasyonu için ödeme tutarını</b> ve "
+            "\"Şov\" yazısını açıklama kısmına ekle.\n"
+            "Ödeme onaylandıktan hemen sonra başlıyoruz 🎬"
+        )
+        await q.message.reply_text(
+            odeme_metni + ekstra,
+            parse_mode=ParseMode.HTML
+        )
+
 async def dekont_al(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    """Fotoğraf veya belge gelirse doğrula ve admin'e ilet — başka hiçbir şey yapma"""
+    """Fotoğraf veya belge gelince doğrula ve SADECE admin'e ilet"""
     user = update.effective_user
     cid  = update.effective_chat.id
     msg  = update.message
 
-    img_bytes = None
-    file_id   = None
-
+    file_id = None
     if msg.photo:
         file_id = msg.photo[-1].file_id
     elif msg.document:
         file_id = msg.document.file_id
 
     if not file_id:
-        return  # Metin, sticker, ses vb. → tamamen yoksay
+        return
 
     tg_file   = await context.bot.get_file(file_id)
     img_bytes = await tg_file.download_as_bytearray()
 
-    # Doğrulama
     dogrulama = None
     if img_bytes:
         try:
+            from dekont_dogrula import dekont_dogrula
             dogrulama = dekont_dogrula(bytes(img_bytes), cid)
         except Exception as e:
             dogrulama = {"sonuc": "HATA", "mesaj": f"⚠️ Doğrulama hatası: {e}", "skor": 0}
 
     # Kullanıcıya yanıt
     if dogrulama and dogrulama["sonuc"] == "SAHTE":
-        await msg.reply_text(
-            "❌ Bu dekont geçersiz görünüyor. Lütfen gerçek ödeme ekran görüntüsü gönderin."
-        )
+        await msg.reply_text("❌ Bu dekont geçersiz görünüyor. Lütfen gerçek ödeme ekran görüntüsü gönderin.")
     else:
         await msg.reply_text("✅ Dekontu aldım, kısa sürede kontrol edip aktif ediyorum!")
 
-    # Admin'e ilet
+    # Sadece admin'e ilet
     user_bilgi = f"👤 {user.first_name} (@{user.username or 'yok'}) | ID: <code>{cid}</code>"
     rapor = (dogrulama["mesaj"] + "\n\n" + user_bilgi) if dogrulama else f"🧾 <b>Dekont Geldi!</b>\n{user_bilgi}"
 
@@ -73,15 +230,16 @@ async def dekont_al(update: Update, context: ContextTypes.DEFAULT_TYPE):
             caption=rapor[:1020], parse_mode=ParseMode.HTML
         )
 
+
 async def main():
-    if not BOT_TOKEN:
-        logger.error("ODEME_BOT_TOKEN eksik")
-        return
     app = Application.builder().token(BOT_TOKEN).build()
+
     app.add_handler(CommandHandler("start", start))
-    # Sadece fotoğraf ve belge — metin mesajları dahil HİÇBİR ŞEY yakalanmıyor
+    app.add_handler(CallbackQueryHandler(callback_al))
     app.add_handler(MessageHandler(filters.PHOTO | filters.Document.ALL, dekont_al))
-    logger.info("Ödeme botu başlatıldı (sadece dekont modu)")
+    app.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, mesaj_al))
+
+    logger.info("✅ Ödeme Botu başladı — polling aktif")
     await app.run_polling(drop_pending_updates=True)
 
 if __name__ == "__main__":
