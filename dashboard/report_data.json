@@ -1,46 +1,60 @@
 {
-  "generated_at": "08.07.2026 09:38 (İstanbul)",
-  "date": "2026-07-08",
-  "score": 100,
+  "generated_at": "09.07.2026 09:37 (İstanbul)",
+  "date": "2026-07-09",
+  "score": 88,
   "bots_alive": 28,
   "reactions": {
-    "total_ok": 70,
-    "total_fail": 0,
-    "success_rate": 100,
-    "vs_yesterday": 23,
-    "speed_per_hour": 23.3,
-    "active_hours": 3,
+    "total_ok": 103,
+    "total_fail": 12,
+    "success_rate": 90,
+    "vs_yesterday": 33,
+    "speed_per_hour": 23.0,
+    "active_hours": 5,
     "peak_hour": 22,
-    "peak_count": 32,
+    "peak_count": 79,
     "by_hour": {
-      "10": {
-        "ok": 31,
+      "5": {
+        "ok": 10,
         "fail": 0,
-        "total": 31
+        "total": 10
+      },
+      "8": {
+        "ok": 0,
+        "fail": 8,
+        "total": 8
+      },
+      "12": {
+        "ok": 8,
+        "fail": 0,
+        "total": 8
       },
       "22": {
-        "ok": 32,
-        "fail": 0,
-        "total": 32
+        "ok": 75,
+        "fail": 4,
+        "total": 79
       },
       "23": {
-        "ok": 7,
+        "ok": 10,
         "fail": 0,
-        "total": 7
+        "total": 10
       }
     },
     "by_channel": {
       "Ücretsiz 1": {
-        "ok": 23,
-        "fail": 0
+        "ok": 57,
+        "fail": 2
       },
       "Ücretsiz 2": {
-        "ok": 23,
+        "ok": 17,
         "fail": 0
       },
       "Arşiv": {
-        "ok": 24,
-        "fail": 0
+        "ok": 21,
+        "fail": 2
+      },
+      "OnlineIsra": {
+        "ok": 8,
+        "fail": 8
       }
     }
   },
@@ -48,10 +62,6 @@
     "today": 0,
     "total_stars": 0,
     "last7": [
-      {
-        "date": "2026-07-02",
-        "count": 0
-      },
       {
         "date": "2026-07-03",
         "count": 0
@@ -74,6 +84,10 @@
       },
       {
         "date": "2026-07-08",
+        "count": 2
+      },
+      {
+        "date": "2026-07-09",
         "count": 0
       }
     ]
