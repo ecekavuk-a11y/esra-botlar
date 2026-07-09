@@ -1,6 +1,9 @@
 import os
 import logging
 import re
+import sys
+sys.path.insert(0, '/home/user/workspace')
+from dekont_dogrula import dekont_dogrula
 from telegram import Update, InlineKeyboardButton, InlineKeyboardMarkup
 from telegram.ext import (
     Application, CommandHandler, MessageHandler,
@@ -184,38 +187,73 @@ async def callback_al(update: Update, context: ContextTypes.DEFAULT_TYPE):
         )
 
 async def dekont_al(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    """Fotoğraf veya belge gelirse admin'e ilet — dekont bildirimi"""
+    """Fotoğraf veya belge gelirse doğrula ve admin'e ilet"""
     user = update.effective_user
     cid  = update.effective_chat.id
     msg  = update.message
 
-    caption = (
-        f"🧾 <b>Dekont Geldi!</b>\n"
-        f"Kullanıcı: {user.first_name} (@{user.username or 'yok'})\n"
-        f"ID: <code>{cid}</code>"
-    )
+    # Fotoğrafı indir
+    img_bytes = None
+    file_id   = None
 
     if msg.photo:
-        # En yüksek kaliteli fotoğrafı al
         file_id = msg.photo[-1].file_id
+    elif msg.document:
+        file_id = msg.document.file_id
+
+    if file_id:
+        tg_file   = await context.bot.get_file(file_id)
+        img_bytes = await tg_file.download_as_bytearray()
+
+    # Doğrulama
+    dogrulama = None
+    if img_bytes:
+        try:
+            dogrulama = dekont_dogrula(bytes(img_bytes), cid)
+        except Exception as e:
+            dogrulama = {"sonuc": "HATA", "mesaj": f"⚠️ Doğrulama hatası: {e}", "skor": 0}
+
+    # Kullanıcıya yanıt
+    if dogrulama and dogrulama["sonuc"] == "SAHTE":
+        await msg.reply_text(
+            "❌ Bu dekont geçersiz görünüyor. Lütfen gerçek ödeme ekran görüntüsü gönderin.",
+            parse_mode=ParseMode.HTML
+        )
+    else:
+        await msg.reply_text(
+            "✅ Dekontu aldım, kısa sürede kontrol edip aktif ediyorum!"
+        )
+
+    # Admin'e gönder — görsel + doğrulama raporu
+    user_bilgi = (
+        f"👤 {user.first_name} (@{user.username or 'yok'}) | ID: <code>{cid}</code>"
+    )
+
+    if dogrulama:
+        rapor = dogrulama["mesaj"] + "\n\n" + user_bilgi
+    else:
+        rapor = f"🧾 <b>Dekont Geldi!</b>\n{user_bilgi}"
+
+    if msg.photo:
         await context.bot.send_photo(
             chat_id=ADMIN_ID,
             photo=file_id,
-            caption=caption,
+            caption=rapor[:1020],
             parse_mode=ParseMode.HTML
         )
     elif msg.document:
-        file_id = msg.document.file_id
         await context.bot.send_document(
             chat_id=ADMIN_ID,
             document=file_id,
-            caption=caption,
+            caption=rapor[:1020],
             parse_mode=ParseMode.HTML
         )
-
-    await msg.reply_text(
-        "✅ Dekontu aldım, kısa sürede kontrol edip aktif ediyorum!"
-    )
+    else:
+        await context.bot.send_message(
+            chat_id=ADMIN_ID,
+            text=rapor,
+            parse_mode=ParseMode.HTML
+        )
 
 
 async def main():
