@@ -1,0 +1,16 @@
+{
+  "name": "odeme-bot-webhook",
+  "version": "5.0.0",
+  "description": "Malatya Esra odeme_bot webhook handler - Docker servisi",
+  "main": "server.js",
+  "license": "UNLICENSED",
+  "private": true,
+  "engines": {
+    "node": ">=20"
+  },
+  "dependencies": {
+    "express": "^4.19.2",
+    "node-fetch": "^2.7.0",
+    "redis": "^4.7.0"
+  }
+}

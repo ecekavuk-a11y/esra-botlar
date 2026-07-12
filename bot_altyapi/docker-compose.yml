@@ -1,0 +1,289 @@
+########################################################################
+# Malatya Esra Telegram Bot Sistemi — Production Docker Compose
+#
+# Servisler:
+#   redis          -> Merkezi state yönetimi (JSON dosya yerine)
+#   nginx          -> Reverse proxy + TLS termination (webhook giriş noktası)
+#   odeme-bot      -> odeme_worker_v5.js webhook handler (Node.js)
+#   arsiv-bot      -> Arşiv paylaşım + arşiv bot scheduler (Python)
+#   reaction-bot   -> Story reaction bot, saatlik scheduler (Python)
+#   vip-manager    -> VIP erişim yöneticisi, günlük scheduler (Python)
+#   health-checker -> 5 dakikada bir sağlık kontrolü + admin uyarısı (Python)
+#
+# Kullanım:
+#   cp .env.example .env   # değerleri doldur
+#   docker compose up -d --build
+#   docker compose logs -f
+#
+# Belgeler: bot_stabilizasyon_rehberi.md
+########################################################################
+
+version: "3.9"
+
+x-logging: &default-logging
+  driver: json-file
+  options:
+    max-size: "10m"
+    max-file: "3"
+
+x-deploy-limits: &default-limits
+  resources:
+    limits:
+      memory: 256M
+      cpus: "0.50"
+    reservations:
+      memory: 64M
+      cpus: "0.10"
+
+networks:
+  bot-network:
+    driver: bridge
+
+volumes:
+  redis-data:
+    driver: local
+  nginx-certs:
+    driver: local
+
+# NOT: cron_tracking için named volume DEĞİL, host bind-mount kullanılıyor.
+# Böylece health_checker.py çıktısı doğrudan
+# /home/user/workspace/cron_tracking/health_status.json yolunda okunabilir
+# (görev gereksinimi). Aşağıdaki servislerde "./cron_tracking:/app/cron_tracking"
+# şeklinde bağlanır; ./cron_tracking gerçek sunucuda
+# /home/user/workspace/cron_tracking dizinine sembolik link veya doğrudan
+# aynı yol olacak şekilde ayarlanmalıdır (bkz deploy.sh).
+
+services:
+
+  # ──────────────────────────────────────────────────────────────
+  # REDIS — merkezi state deposu (JSON dosya kaybını önler)
+  # ──────────────────────────────────────────────────────────────
+  redis:
+    image: redis:7-alpine
+    container_name: esra-redis
+    restart: unless-stopped
+    command: >
+      redis-server
+      --appendonly yes
+      --appendfsync everysec
+      --requirepass ${REDIS_PASSWORD}
+      --maxmemory 200mb
+      --maxmemory-policy allkeys-lru
+    volumes:
+      - redis-data:/data
+    networks:
+      - bot-network
+    logging: *default-logging
+    deploy: *default-limits
+    healthcheck:
+      test: ["CMD", "redis-cli", "-a", "${REDIS_PASSWORD}", "ping"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 10s
+
+  # ──────────────────────────────────────────────────────────────
+  # NGINX — reverse proxy, webhook giriş noktası, TLS termination
+  # ──────────────────────────────────────────────────────────────
+  nginx:
+    image: nginx:1.27-alpine
+    container_name: esra-nginx
+    restart: unless-stopped
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./nginx/nginx.conf:/etc/nginx/nginx.conf:ro
+      - ./nginx/conf.d:/etc/nginx/conf.d:ro
+      - nginx-certs:/etc/letsencrypt
+    depends_on:
+      odeme-bot:
+        condition: service_healthy
+      arsiv-bot:
+        condition: service_healthy
+    networks:
+      - bot-network
+    logging: *default-logging
+    deploy: *default-limits
+    healthcheck:
+      test: ["CMD", "wget", "-q", "--spider", "http://localhost/healthz"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 10s
+
+  # ──────────────────────────────────────────────────────────────
+  # ODEME-BOT — odeme_worker_v5.js webhook handler (Node.js)
+  # Not: Vip_iesrabot webhook'u DA bu servise değil, ayrı path'e
+  # yönlendirilir (bkz. nginx/conf.d) — çift webhook çakışması çözümü.
+  # ──────────────────────────────────────────────────────────────
+  odeme-bot:
+    build:
+      context: ./odeme-bot
+      dockerfile: Dockerfile
+    container_name: esra-odeme-bot
+    restart: unless-stopped
+    env_file:
+      - .env
+    environment:
+      - PORT=3001
+      - REDIS_URL=redis://:${REDIS_PASSWORD}@redis:6379/0
+      - BOT_TOKEN=${ODEME_BOT_TOKEN}
+      - VIP_BOT_TOKEN=${VIP_BOT_TOKEN}
+      - NODE_ENV=production
+    expose:
+      - "3001"
+    depends_on:
+      redis:
+        condition: service_healthy
+    networks:
+      - bot-network
+    logging: *default-logging
+    deploy: *default-limits
+    healthcheck:
+      test: ["CMD", "wget", "-q", "--spider", "http://localhost:3001/health"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 15s
+
+  # ──────────────────────────────────────────────────────────────
+  # ARSIV-BOT — arsiv_paylasim_cron.py + arsiv_bot.py (Python)
+  # İçeride basit scheduler (schedule kütüphanesi) günde 3 kez paylaşım
+  # yapar; ayrıca webhook için Flask/gunicorn mini servis dinler.
+  # ──────────────────────────────────────────────────────────────
+  arsiv-bot:
+    build:
+      context: ./arsiv-bot
+      dockerfile: Dockerfile
+    container_name: esra-arsiv-bot
+    restart: unless-stopped
+    env_file:
+      - .env
+    environment:
+      - PORT=3002
+      - REDIS_URL=redis://:${REDIS_PASSWORD}@redis:6379/1
+      - BOT_TOKEN=${ARSIV_BOT_TOKEN}
+      - ADMIN_ID=${ADMIN_ID}
+      - PYTHONUNBUFFERED=1
+    expose:
+      - "3002"
+    volumes:
+      - ./cron_tracking:/app/cron_tracking
+      - ./data/video_arsiv.json:/app/video_arsiv.json
+    depends_on:
+      redis:
+        condition: service_healthy
+    networks:
+      - bot-network
+    logging: *default-logging
+    deploy: *default-limits
+    healthcheck:
+      test: ["CMD", "wget", "-q", "--spider", "http://localhost:3002/health"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 15s
+
+  # ──────────────────────────────────────────────────────────────
+  # REACTION-BOT — story_reaction_bot.py, saatlik scheduler (Python)
+  # Not: Uzun süren API çağrıları thread-pool + timeout ile korunur
+  # (script timeout 630s sorununun çözümü).
+  # ──────────────────────────────────────────────────────────────
+  reaction-bot:
+    build:
+      context: ./reaction-bot
+      dockerfile: Dockerfile
+    container_name: esra-reaction-bot
+    restart: unless-stopped
+    env_file:
+      - .env
+    environment:
+      - REDIS_URL=redis://:${REDIS_PASSWORD}@redis:6379/2
+      - ADMIN_ID=${ADMIN_ID}
+      - HTTP_TIMEOUT_SECONDS=25
+      - JOB_TIMEOUT_SECONDS=300
+      - PYTHONUNBUFFERED=1
+    volumes:
+      - ./cron_tracking:/app/cron_tracking
+    depends_on:
+      redis:
+        condition: service_healthy
+    networks:
+      - bot-network
+    logging: *default-logging
+    deploy: *default-limits
+    healthcheck:
+      test: ["CMD", "python3", "-c", "import pathlib,sys,time; p=pathlib.Path('/app/cron_tracking/reaction_heartbeat'); sys.exit(0 if p.exists() and (time.time()-p.stat().st_mtime)<3900 else 1)"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 30s
+
+  # ──────────────────────────────────────────────────────────────
+  # VIP-MANAGER — vip_erisim_yonetici.py, günlük scheduler (Python)
+  # ──────────────────────────────────────────────────────────────
+  vip-manager:
+    build:
+      context: ./vip-manager
+      dockerfile: Dockerfile
+    container_name: esra-vip-manager
+    restart: unless-stopped
+    env_file:
+      - .env
+    environment:
+      - REDIS_URL=redis://:${REDIS_PASSWORD}@redis:6379/3
+      - SUPABASE_URL=${SUPABASE_URL}
+      - SUPABASE_KEY=${SUPABASE_KEY}
+      - VIP_BOT_TOKEN=${ODEME_BOT_TOKEN}
+      - ADMIN_ID=${ADMIN_ID}
+      - VIP_CHANNEL_ID=${VIP_CHANNEL_ID}
+      - PYTHONUNBUFFERED=1
+    volumes:
+      - ./cron_tracking:/app/cron_tracking
+    depends_on:
+      redis:
+        condition: service_healthy
+    networks:
+      - bot-network
+    logging: *default-logging
+    deploy: *default-limits
+    healthcheck:
+      test: ["CMD", "python3", "-c", "import pathlib,sys,time; p=pathlib.Path('/app/cron_tracking/vip_heartbeat'); sys.exit(0 if p.exists() and (time.time()-p.stat().st_mtime)<93600 else 1)"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 30s
+
+  # ──────────────────────────────────────────────────────────────
+  # HEALTH-CHECKER — her 5 dakikada tüm botların sağlığını kontrol eder
+  # ──────────────────────────────────────────────────────────────
+  health-checker:
+    build:
+      context: ./health-checker
+      dockerfile: Dockerfile
+    container_name: esra-health-checker
+    restart: unless-stopped
+    env_file:
+      - .env
+    environment:
+      - REDIS_URL=redis://:${REDIS_PASSWORD}@redis:6379/4
+      - ADMIN_ID=${ADMIN_ID}
+      - CHECK_INTERVAL_SECONDS=300
+      - PYTHONUNBUFFERED=1
+    volumes:
+      - ./cron_tracking:/app/cron_tracking
+      - ./data:/app/data
+    depends_on:
+      redis:
+        condition: service_healthy
+    networks:
+      - bot-network
+    logging: *default-logging
+    deploy: *default-limits
+    healthcheck:
+      test: ["CMD", "python3", "-c", "import pathlib,sys,time; p=pathlib.Path('/app/cron_tracking/health_heartbeat'); sys.exit(0 if p.exists() and (time.time()-p.stat().st_mtime)<600 else 1)"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 20s
