@@ -39,32 +39,21 @@ ARSIV_DOSYASI   = "/home/user/workspace/video_arsiv.json"
 PAYLASIM_LOG    = "/home/user/workspace/cron_tracking/paylasim_log.json"
 
 # ─── CAPTION ŞABLONLARI — Yedek (caption_motor import edilemezse) ─
-CAPTION_SABLONLAR = {
-    "sabah": [
-        "günaydın 🌸 sabahı benimle aç\ndevamı VIP'te sizi bekliyor 😏\n\n💎 {vip}\n⭐ {yildiz} yıldız ile izle",
-        "sabah sabah aklıma siz düştünüz 🌹\nbir şeyler hazırladım, kalanı VIP'te\n\n→ {vip}\n⭐ {yildiz} yıldız",
-        "güne güzel başlayalım 🔥\nönizleme bu kadar, gerisi VIP'te\n\n💎 {vip}\n⭐ {yildiz} yıldız ile devamını gör",
-        "sabah kahvenden önce bunu gör 😈\ngerçek olan VIP kanalda\n\n🔗 {vip}\n⭐ {yildiz} yıldız",
-    ],
-    "ogle": [
-        "öğle arası sizi düşündüm 🍯\nbir kısmını gösterdim, gerisi VIP'te\n\n💎 {vip}\n⭐ {yildiz} yıldız ile izle",
-        "az önce çektim, size özel 🔥\ndevamı her zaman VIP'te oluyor 😏\n\n→ {vip}\n⭐ {yildiz} yıldız",
-        "canım sıkıldı, sizi düşündüm 🌹\ngel VIP'te devamına bak 😏\n\n💎 {vip}\n⭐ {yildiz} yıldız",
-        "yeni video sıcacık 🔥\ntüm içeriklere erişim VIP'te\n\n→ {vip}\n⭐ {yildiz} yıldız ile izle",
-    ],
-    "aksam": [
-        "akşam oldu, sizi özledim 🌅\ndevamını görmek isteyene kapım açık\n\n💎 {vip}\n⭐ {yildiz} yıldız ile izle",
-        "bu kadar mı? tabii ki hayır 😈\ngeri kalanı sana özel VIP'te\n\n🔗 {vip}\n⭐ {yildiz} yıldız",
-        "akşamı güzelleştirelim mi 🔥\nönizleme bu kadar, devamı VIP'te\n\n→ {vip}\n⭐ {yildiz} yıldız",
-        "sadece sizin için çektim 🍯\nbir kısmını gösterdim, gerisi VIP'te\n\n💎 {vip}\n⭐ {yildiz} yıldız ile devamını gör",
-    ],
-    "gece": [
-        "bu gece biraz eğlendim 🌙\nkalanı VIP'te sizi bekliyor...\n\n→ {vip}\n⭐ {yildiz} yıldız",
-        "iyi geceler 🔥 ya da daha iyi mi yapalım?\ndevamı için biliyorsunuz ne yapılacağını\n\n{vip}\n⭐ {yildiz} yıldız ile izle",
-        "gece yarısı aklıma siz geldiniz 😈\ngerçek olan VIP kanalda\n\n🔗 {vip}\n⭐ {yildiz} yıldız",
-        "sadece seçilmişler için 🌙\nVIP üyelerim her şeyi tam görüyor\n\ngel katıl: {vip}\n⭐ {yildiz} yıldız",
-    ],
-}
+try:
+    from caption_motor import CAPTION_LISTESI as _CL
+    CAPTION_SABLONLAR = {
+        "sabah": _CL[0:25],
+        "ogle":  _CL[25:50],
+        "aksam": _CL[50:75],
+        "gece":  _CL[75:100],
+    }
+except Exception:
+    CAPTION_SABLONLAR = {
+        "sabah": ["sabah uyandım, aklıma siz geldiniz"],
+        "ogle":  ["öğle arası sizi düşündüm"],
+        "aksam": ["akşam oldu, sizi özledim"],
+        "gece":  ["bu gece biraz eğlendim"],
+    }
 
 # ─── YARDIMCI ────────────────────────────────────────────────────
 
@@ -105,10 +94,9 @@ def gun_zamani() -> str:
 
 
 def siradaki_caption(yildiz: int, index: int) -> str:
-    zaman    = gun_zamani()
+    zaman     = gun_zamani()
     sablonlar = CAPTION_SABLONLAR[zaman]
-    sablon   = sablonlar[index % len(sablonlar)]
-    return sablon.format(vip=VIP_LINK, yildiz=yildiz)
+    return sablonlar[index % len(sablonlar)]
 
 
 def admin_bildir(metin: str):
@@ -132,8 +120,17 @@ def paylasim_yap():
         # Kategori yoksa tüm arşivi kullan (geriye uyumluluk)
         arsiv_18 = arsiv
 
+    # Son 3 paylaşımdaki videoları tekrar atlatma
+    log_temp = load_json(PAYLASIM_LOG, {"caption_index": 0, "gecmis": []})
+    son_paylasimlar = [g.get("file_id") for g in log_temp.get("gecmis", [])[-3:] if g.get("file_id")]
+
+    # Önce son paylaşılmayanları dene, hepsi paylaşıldıysa en az kullanılanı seç
+    aday_listesi = [v for v in arsiv_18 if v["file_id"] not in son_paylasimlar]
+    if not aday_listesi:
+        aday_listesi = arsiv_18  # Hepsi son 3'te varsa tüm listeyi kullan
+
     # En az kullanılan videoyu seç
-    video   = min(arsiv_18, key=lambda x: x.get("kullanildi", 0))
+    video   = min(aday_listesi, key=lambda x: x.get("kullanildi", 0))
     file_id = video["file_id"]
     sure_sn = video.get("sure_sn", 120)
 
@@ -198,6 +195,14 @@ def paylasim_yap():
 
         if r.get("ok"):
             basari += 1
+            # msg_id'yi kaydet — tekrar kontrol sistemi kullanır
+            try:
+                sent_msg_id = r["result"].get("message_id") or r["result"].get("id")
+                if sent_msg_id:
+                    from icerik_tekrar_kontrol import paylasim_msg_id_kaydet
+                    paylasim_msg_id_kaydet(str(kanal_id), sent_msg_id, file_id)
+            except Exception:
+                pass
             print(f"  ✅ Kanal {kanal_id} → gönderildi")
         else:
             err = r.get("description", "?")
@@ -206,19 +211,21 @@ def paylasim_yap():
 
         time.sleep(2)
 
-    # Kullanım sayısını güncelle
+    # Kullanım sayısını güncelle — her run'da sadece 1 artar (kanal sayısından bağımsız)
     for v in arsiv:
         if v["file_id"] == file_id:
             v["kullanildi"] = v.get("kullanildi", 0) + 1
+            break  # Sadece bir kez artır
     save_json(ARSIV_DOSYASI, arsiv)
 
-    # Log güncelle
+    # Log güncelle — file_id de kaydet ki tekrar seçilmesin
     log["caption_index"] = idx + 1
     log.setdefault("gecmis", []).append({
         "zaman":   datetime.now(timezone.utc).isoformat(),
         "basari":  basari,
         "kanal":   len(KANALLAR),
         "yildiz":  yildiz,
+        "file_id": file_id,
         "hatalar": hatalar,
     })
     log["gecmis"] = log["gecmis"][-60:]  # Son 60 paylaşım
